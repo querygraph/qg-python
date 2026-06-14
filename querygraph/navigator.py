@@ -77,7 +77,6 @@ class AiNavigator:
             keywords=["AI Navigator", "Croissant", "CDIF", "DID", "ODRL"],
         )
 
-        cdif = CdifResource.from_croissant(dataset, input.landing_page, input.data_url)
         policy = Policy(
             id=f"{dataset_id}/policy/default",
             target=dataset_id,
@@ -102,10 +101,13 @@ class AiNavigator:
                 )
             ],
         )
+        odrl_json = policy.to_json_ld()
+        cdif = CdifResource.from_croissant(
+            dataset, input.landing_page, input.data_url
+        ).with_odrl_policy(policy.id, odrl_json)
 
         croissant_json = dataset.to_json_ld()
         cdif_json = cdif.to_json_ld()
-        odrl_json = policy.to_json_ld()
         generated_at = datetime.now(UTC)
         did_json = did.to_json()
         bundle = {

@@ -9,10 +9,34 @@ description = "Python port of the QueryGraph AI Navigator semantic layer"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = []
+dependencies = [
+  "pydantic>=2.7",
+]
 
 [project.optional-dependencies]
+agents = [
+  "langchain-core>=0.3",
+]
+lakehouse = [
+  "googleapis-common-protos>=1.75.0",
+  "grpcio>=1.81.0",
+  "grpcio-status>=1.81.0",
+  "pandas>=3.0.0",
+  "pyarrow>=24.0.0",
+  "pyspark>=4.1.2",
+  "zstandard>=0.25.0",
+]
 test = ["pytest>=8.0"]
+all = [
+  "googleapis-common-protos>=1.75.0",
+  "grpcio>=1.81.0",
+  "grpcio-status>=1.81.0",
+  "langchain-core>=0.3",
+  "pandas>=3.0.0",
+  "pyarrow>=24.0.0",
+  "pyspark>=4.1.2",
+  "zstandard>=0.25.0",
+]
 
 [project.scripts]
 querygraph = "querygraph.cli:main"
