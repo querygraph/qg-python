@@ -4,12 +4,12 @@ import json
 from pathlib import Path
 
 from querygraph.croissant import CroissantDataset, Field, FileObject, RecordSet
-from querygraph.cdrl import ContractedDataRightsLayer
 from querygraph.cdif import CdifResource
 from querygraph.dataverse import DataverseDataset
 from querygraph.lakehouse import example_queries, load_table_specs
 from querygraph.lineage import LineageAttestation, OpenLineageRunEvent
 from querygraph.odrl import Action, Policy, Rule
+from querygraph.odrl_rights import OdrlRightsLayer
 from querygraph.osi import OsiDocument
 from querygraph.qglake import build_python_qglake_story
 from querygraph.rbac import RbacPolicy, RoleGrant, RolePermission
@@ -139,10 +139,10 @@ def test_python_qglake_story_exercises_denial_lineage_and_attestation():
     assert any("codata_constants" in query for query in example_queries())
 
 
-def test_cdrl_requires_both_rbac_and_odrl():
+def test_odrl_rights_layer_requires_both_rbac_and_odrl():
     principal = "did:example:finance"
     resource = "compartment:finance"
-    cdrl = ContractedDataRightsLayer(
+    rights = OdrlRightsLayer(
         rbac=RbacPolicy(
             grants=[RoleGrant(principal=principal, role="finance_reader")],
             permissions=[
@@ -162,8 +162,8 @@ def test_cdrl_requires_both_rbac_and_odrl():
         ),
     )
 
-    assert cdrl.decide(principal, resource, Action.READ).allowed
-    assert not cdrl.decide(principal, resource, Action.DERIVE).allowed
+    assert rights.decide(principal, resource, Action.READ).allowed
+    assert not rights.decide(principal, resource, Action.DERIVE).allowed
 
 
 def test_dataverse_native_payload_projects_to_croissant_and_validation():

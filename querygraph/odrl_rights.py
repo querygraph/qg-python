@@ -7,7 +7,7 @@ from querygraph.rbac import RbacPolicy
 from querygraph.typedid import AccessReceipt
 
 
-class CdrlDecision(BaseModel):
+class OdrlDecision(BaseModel):
     principal: str
     resource: str
     action: str
@@ -17,13 +17,13 @@ class CdrlDecision(BaseModel):
     receipt: AccessReceipt
 
 
-class ContractedDataRightsLayer(BaseModel):
-    """QueryGraph's product layer for ODRL-compatible governed data rights."""
+class OdrlRightsLayer(BaseModel):
+    """ODRL policy evaluation with RBAC and QueryGraph access receipts."""
 
     rbac: RbacPolicy
     odrl: Policy
 
-    def decide(self, principal: str, resource: str, action: Action) -> CdrlDecision:
+    def decide(self, principal: str, resource: str, action: Action) -> OdrlDecision:
         rbac_allowed = self.rbac.allows(principal, resource, action.value)
         odrl_allowed = self.odrl.allows(principal, action)
         allowed = rbac_allowed and odrl_allowed
@@ -39,7 +39,7 @@ class ContractedDataRightsLayer(BaseModel):
             ),
             policy_id=self.odrl.id,
         )
-        return CdrlDecision(
+        return OdrlDecision(
             principal=principal,
             resource=resource,
             action=action.iri(),
