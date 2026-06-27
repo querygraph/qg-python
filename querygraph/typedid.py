@@ -25,7 +25,7 @@ class AccessReceipt(BaseModel):
     issued_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
-# Default TypeDID profile id, mirroring TypeSec 0.10 "Murano"'s
+# Default TypeDID profile id, mirroring TypeSec 0.11 "Burano"'s
 # `TypeDidProfile::ed25519_x25519_chacha20()`.
 TYPEDID_PROFILE = "ed25519-x25519-chacha20"
 
@@ -38,7 +38,7 @@ class TypeDidEnvelope(BaseModel):
     action: str
     resource: str
     # Audit-safe attestation fields, mirroring the Rust port's adoption of
-    # TypeSec 0.10 "Murano" `VerifiedTypeDidMessage::attestation()`: privacy
+    # TypeSec 0.11 "Burano" `VerifiedTypeDidMessage::attestation()`: privacy
     # level, negotiated profile, and a digest binding the attestation to this
     # exact envelope — surfaced without revealing the payload.
     privacy: str = "secret"

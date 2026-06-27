@@ -24,10 +24,11 @@ LangChain agents, and data scientists a typed interop layer.
 This port tracks the same coordinated QueryGraph stack releases as `../qg-rust`:
 
 - **Grust 0.11.0 "Crab"** — the property-graph + GQL/Cypher substrate.
-- **TypeSec 0.10.0 "Murano"** — the typed security fabric; the Pydantic
-  `TypeDidEnvelope` mirrors Murano's audit-safe attestation (action, resource,
+- **TypeSec 0.11.0 "Burano"** — the typed security fabric; the Pydantic
+  `TypeDidEnvelope` mirrors its audit-safe attestation (action, resource,
   privacy level, negotiated profile, and an envelope digest).
-- **LakeCat 0.2.0 "Lynx"** — the thin Iceberg REST catalog boundary.
+- **LakeCat 0.2.1 "Lynx"** — the thin Iceberg REST catalog boundary, now sharing
+  its bootstrap-bundle wire format with the importer via `qglake-bundle`.
 
 See `../qg-rust/docs/blog/announcing-querygraph-stack.md` for the full story.
 
