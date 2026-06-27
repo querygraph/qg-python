@@ -140,3 +140,9 @@ uv run python -m pytest
 ```
 
 The test suite includes equivalence checks against the sibling Rust implementation.
+
+## Releases
+
+This is **QueryGraph Python 0.2.0 "Peregrine"**. See [`CHANGELOG.md`](CHANGELOG.md)
+for per-release notes and [`RELEASES.md`](RELEASES.md) for the version/codename
+log (shared with `../qg-rust`).

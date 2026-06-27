@@ -2,7 +2,8 @@
 
 The Python port shares the version line and codenames of the Rust
 implementation. The canonical release scheme and codename pool (birds of prey)
-live in `../qg-rust/RELEASES.md`.
+live in `../qg-rust/RELEASES.md`. Detailed per-release notes are in
+[`CHANGELOG.md`](CHANGELOG.md).
 
 ## Release log
 
