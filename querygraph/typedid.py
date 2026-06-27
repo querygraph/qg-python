@@ -25,6 +25,11 @@ class AccessReceipt(BaseModel):
     issued_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
+# Default TypeDID profile id, mirroring TypeSec 0.10 "Murano"'s
+# `TypeDidProfile::ed25519_x25519_chacha20()`.
+TYPEDID_PROFILE = "ed25519-x25519-chacha20"
+
+
 class TypeDidEnvelope(BaseModel):
     protocol: str = "querygraph.typedid.v1"
     conversation_id: str
@@ -32,10 +37,17 @@ class TypeDidEnvelope(BaseModel):
     recipient: str
     action: str
     resource: str
+    # Audit-safe attestation fields, mirroring the Rust port's adoption of
+    # TypeSec 0.10 "Murano" `VerifiedTypeDidMessage::attestation()`: privacy
+    # level, negotiated profile, and a digest binding the attestation to this
+    # exact envelope — surfaced without revealing the payload.
+    privacy: str = "secret"
+    profile: str = TYPEDID_PROFILE
     content_type: str = "application/json"
     payload: dict[str, Any]
     payload_sha256: str
     signature: str
+    envelope_digest: str = ""
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @classmethod
@@ -49,6 +61,8 @@ class TypeDidEnvelope(BaseModel):
         payload: dict[str, Any],
         conversation_id: str | None = None,
         content_type: str = "application/json",
+        privacy: str = "secret",
+        profile: str = TYPEDID_PROFILE,
     ) -> "TypeDidEnvelope":
         sender_id = sender.id if isinstance(sender, DidDocument) else sender
         recipient_id = recipient.id if isinstance(recipient, DidDocument) else recipient
@@ -66,16 +80,30 @@ class TypeDidEnvelope(BaseModel):
                 ]
             )
         )
+        envelope_digest = sha256_hex(
+            "\n".join(
+                [
+                    "querygraph-typedid-envelope-digest-v1",
+                    conversation,
+                    privacy,
+                    profile,
+                    signature,
+                ]
+            )
+        )
         return cls(
             conversation_id=conversation,
             sender=sender_id,
             recipient=recipient_id,
             action=action,
             resource=resource,
+            privacy=privacy,
+            profile=profile,
             content_type=content_type,
             payload=payload,
             payload_sha256=payload_hash,
             signature=f"sha256:{signature}",
+            envelope_digest=f"sha256:{envelope_digest}",
         )
 
     def verify_payload(self) -> bool:

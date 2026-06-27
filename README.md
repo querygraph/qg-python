@@ -19,6 +19,18 @@ The design goal is Python-native ergonomics over the same governed lakehouse:
 Rust loads and verifies the warehouse; Python gives notebooks, PySpark users,
 LangChain agents, and data scientists a typed interop layer.
 
+## Stack versions
+
+This port tracks the same coordinated QueryGraph stack releases as `../qg-rust`:
+
+- **Grust 0.11.0 "Crab"** — the property-graph + GQL/Cypher substrate.
+- **TypeSec 0.10.0 "Murano"** — the typed security fabric; the Pydantic
+  `TypeDidEnvelope` mirrors Murano's audit-safe attestation (action, resource,
+  privacy level, negotiated profile, and an envelope digest).
+- **LakeCat 0.2.0 "Lynx"** — the thin Iceberg REST catalog boundary.
+
+See `../qg-rust/docs/blog/announcing-querygraph-stack.md` for the full story.
+
 ## Install
 
 Core metadata and TypeDID/Pydantic support:
