@@ -4,10 +4,11 @@ All notable changes to the QueryGraph Python port are recorded here. The
 codename pool and the shared version line live in [`RELEASES.md`](RELEASES.md);
 the canonical scheme is in `../qg-rust/RELEASES.md`.
 
-## 0.3.0-dev — unreleased
+## 0.3.0 "Goshawk" — 2026-07-03
 
-Interoperability release in progress, implementing the FABLE-REVIEW-1 P0 items
-and quick wins (see `../FABLE-REVIEW-1.md`).
+The interoperability release, implementing the FABLE-REVIEW-1 P0 items and
+quick wins alongside qg-rust 0.3.0 "Goshawk" (see the workspace
+`FABLE-REVIEW-1.md` §9).
 
 ### Added
 - **Real Ed25519 signing** (`querygraph.crypto`, extra: `crypto`). TypeDID

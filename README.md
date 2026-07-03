@@ -211,6 +211,6 @@ The test suite includes equivalence checks against the sibling Rust implementati
 
 ## Releases
 
-This is **QueryGraph Python 0.2.0 "Peregrine"**. See [`CHANGELOG.md`](CHANGELOG.md)
+This is **QueryGraph Python 0.3.0 "Goshawk"**. See [`CHANGELOG.md`](CHANGELOG.md)
 for per-release notes and [`RELEASES.md`](RELEASES.md) for the version/codename
 log (shared with `../qg-rust`).
