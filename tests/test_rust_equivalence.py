@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 RUST_ROOT = ROOT.parent / "qg-rust"
@@ -85,3 +87,43 @@ def test_qglake_story_governance_semantics_match_rust():
         assert len(specialist["request"]["payload_sha256"]) == 64
     for response in python["responses"]:
         assert len(response["envelope"]["payload_sha256"]) == 64
+
+
+def test_rust_verifies_python_ed25519_envelope():
+    """Cross-language crypto parity: an envelope signed by qg-python (real
+    Ed25519 under a did:key verification method) must verify in qg-rust."""
+    pytest.importorskip("cryptography", reason="querygraph[crypto] not installed")
+    from querygraph.typedid import TypeDidAgent
+
+    supervisor = TypeDidAgent.new("SupervisorAgent")
+    envelope = supervisor.request(
+        TypeDidAgent.new("FinanceAgent"),
+        action="summarize",
+        resource="compartment:finance",
+        payload={"question": "Where is fiscal stress highest?", "unicode": "café ☕"},
+    )
+    assert envelope.is_signed()
+
+    process = subprocess.run(
+        ["cargo", "run", "--quiet", "--", "verify-envelope", "--file", "-"],
+        cwd=RUST_ROOT,
+        input=json.dumps(envelope.model_dump(mode="json")),
+        capture_output=True,
+        text=True,
+    )
+    report = json.loads(process.stdout)
+    assert report["payload_hash_valid"] is True
+    assert report["signature_valid"] is True
+    assert process.returncode == 0
+
+    # A tampered envelope must fail with a non-zero exit.
+    tampered = envelope.model_dump(mode="json") | {"resource": "compartment:other"}
+    process = subprocess.run(
+        ["cargo", "run", "--quiet", "--", "verify-envelope", "--file", "-"],
+        cwd=RUST_ROOT,
+        input=json.dumps(tampered),
+        capture_output=True,
+        text=True,
+    )
+    assert process.returncode == 1
+    assert json.loads(process.stdout)["signature_valid"] is False
