@@ -65,6 +65,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     pyspark_examples.add_argument("--scope", default="global_temp")
 
+    mcp_serve = subparsers.add_parser(
+        "mcp-serve",
+        help="Serve the governed semantic layer over the Model Context Protocol.",
+    )
+    mcp_serve.add_argument(
+        "--osi", default=None, help="Path to an OSI semantic model YAML/JSON file."
+    )
+    mcp_serve.add_argument(
+        "--rights",
+        default=None,
+        help='Path to {"rbac": ..., "odrl": ...} governance JSON (demo policy if omitted).',
+    )
+    mcp_serve.add_argument(
+        "--transport", default="stdio", choices=["stdio", "sse", "streamable-http"]
+    )
+
     args = parser.parse_args(argv)
     if args.command == "navigator":
         output = AiNavigator().build(
@@ -106,6 +122,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "pyspark-examples":
         print("\n".join(example_queries(args.scope)))
+        return 0
+
+    if args.command == "mcp-serve":
+        from querygraph.mcp_server import serve
+
+        serve(osi_path=args.osi, rights_path=args.rights, transport=args.transport)
         return 0
 
     anchored = CodataOdrlClient(args.endpoint).create_did_from_url(args.url)
