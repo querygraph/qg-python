@@ -7,6 +7,11 @@ the canonical scheme is in `../qg-rust/RELEASES.md`.
 ## 0.4.0-dev — unreleased
 
 ### Added
+- **Envelope auth client** (`querygraph.api_auth`): `mint_envelope_header`
+  and `governed_post` mint the `x-qg-envelope` header qg-server's
+  `--require-auth` mode demands — path-bound, body-bound, Ed25519-signed.
+  The equivalence suite proves it live against a running qg-server (401
+  without the header, 200 with it).
 - **The governed navigator loop** (`querygraph.navigator_loop`, CLI:
   `querygraph answer`, MCP tool: `answer_question`) — FABLE-REVIEW-1 P1-8.
   question → semantic-model search (synonyms + bigrams + containment) →

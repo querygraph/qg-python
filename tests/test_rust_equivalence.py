@@ -117,6 +117,72 @@ def test_a2a_agent_cards_agree_across_languages():
     assert python["capabilities"] == rust["capabilities"]
 
 
+def test_python_envelope_auth_accepted_by_live_rust_server():
+    """Live cross-language auth: qg-python mints the x-qg-envelope header,
+    qg-rust `serve --require-auth` accepts it, and rejects the same request
+    without the header."""
+    pytest.importorskip("cryptography", reason="querygraph[crypto] not installed")
+    import os
+    import time
+    import urllib.error
+    import urllib.request
+
+    from querygraph.api_auth import governed_post
+    from querygraph.typedid import TypeDidAgent
+
+    subprocess.check_call(
+        ["cargo", "build", "--quiet"], cwd=RUST_ROOT
+    )
+    port = 18000 + os.getpid() % 2000
+    server = subprocess.Popen(
+        [
+            str(RUST_ROOT / "target" / "debug" / "querygraph"),
+            "serve",
+            "--port",
+            str(port),
+            "--require-auth",
+        ],
+        cwd=RUST_ROOT,
+    )
+    base = f"http://127.0.0.1:{port}"
+    try:
+        for _ in range(50):
+            try:
+                urllib.request.urlopen(f"{base}/v1/health", timeout=1)
+                break
+            except OSError:
+                time.sleep(0.2)
+        else:
+            raise RuntimeError("qg-server did not come up")
+
+        # Unauthenticated request to a governed route → 401 with a receipt.
+        try:
+            urllib.request.urlopen(
+                urllib.request.Request(
+                    f"{base}/v1/answer",
+                    data=json.dumps({"question": "?"}).encode(),
+                    headers={"Content-Type": "application/json"},
+                ),
+                timeout=5,
+            )
+            raise AssertionError("expected HTTP 401")
+        except urllib.error.HTTPError as error:
+            assert error.code == 401
+            receipt = json.loads(error.read())["receipt"]
+            assert receipt["allowed"] is False
+
+        # Python-signed envelope → accepted, answer returned.
+        agent = TypeDidAgent.new("ApiClient")
+        result = governed_post(
+            base, "/v1/answer", {"question": "what is fiscal capacity?"}, agent
+        )
+        assert result["synthesizedBy"] == "deterministic"
+        assert "answer" in result
+    finally:
+        server.terminate()
+        server.wait(timeout=10)
+
+
 def test_rust_verifies_python_ed25519_envelope():
     """Cross-language crypto parity: an envelope signed by qg-python (real
     Ed25519 under a did:key verification method) must verify in qg-rust."""
