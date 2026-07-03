@@ -1164,6 +1164,7 @@ all = [
     { name = "googleapis-common-protos" },
     { name = "grpcio" },
     { name = "grpcio-status" },
+    { name = "jsonschema" },
     { name = "langchain-core" },
     { name = "mcp" },
     { name = "pandas" },
@@ -1190,7 +1191,11 @@ mcp = [
 ]
 test = [
     { name = "cryptography" },
+    { name = "jsonschema" },
     { name = "pytest" },
+]
+validation = [
+    { name = "jsonschema" },
 ]
 
 [package.metadata]
@@ -1204,6 +1209,9 @@ requires-dist = [
     { name = "grpcio", marker = "extra == 'lakehouse'", specifier = ">=1.81.0" },
     { name = "grpcio-status", marker = "extra == 'all'", specifier = ">=1.81.0" },
     { name = "grpcio-status", marker = "extra == 'lakehouse'", specifier = ">=1.81.0" },
+    { name = "jsonschema", marker = "extra == 'all'", specifier = ">=4.21" },
+    { name = "jsonschema", marker = "extra == 'test'", specifier = ">=4.21" },
+    { name = "jsonschema", marker = "extra == 'validation'", specifier = ">=4.21" },
     { name = "langchain-core", marker = "extra == 'agents'", specifier = ">=0.3,<2" },
     { name = "langchain-core", marker = "extra == 'all'", specifier = ">=0.3,<2" },
     { name = "mcp", marker = "extra == 'all'", specifier = ">=1.2" },
@@ -1221,7 +1229,7 @@ requires-dist = [
     { name = "zstandard", marker = "extra == 'all'", specifier = ">=0.25.0" },
     { name = "zstandard", marker = "extra == 'lakehouse'", specifier = ">=0.25.0" },
 ]
-provides-extras = ["agents", "crypto", "mcp", "lakehouse", "test", "all"]
+provides-extras = ["agents", "crypto", "mcp", "lakehouse", "validation", "test", "all"]
 
 [[package]]
 name = "referencing"

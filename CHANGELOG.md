@@ -33,8 +33,19 @@ and quick wins (see `../FABLE-REVIEW-1.md`).
   primary/unique keys, `SUPPORTED_DIALECTS`, `resolve_metric()` with
   ANSI_SQL/SAIL_SQL fallback, `find_by_synonym()`, and acceptance of upstream
   OSI documents that spell `semantic_model` as a list.
+- **A2A Agent Card** (`querygraph.a2a`, CLI: `querygraph agent-card`): the
+  Agent2Agent v0.3.0 card qg-rust serves at `/.well-known/agent-card.json`.
+  The skill list and TypeDID security scheme are a cross-language contract
+  asserted by the equivalence suite.
+- **Official OpenLineage schema validation**
+  (`validation.validate_openlineage_schema`, extra: `validation`): the 2-0-2
+  spec schema is vendored and format-checked, so interop with OSS consumers
+  (Marquez, openlineage-python) is proven rather than asserted — for events
+  emitted by both qg-python and qg-rust.
 - **Cross-language qglake equivalence test** asserting governance semantics
-  (specialist roster, denial pattern, evidence chain) match the Rust CLI.
+  (specialist roster, denial pattern, evidence chain) match the Rust CLI,
+  plus live Ed25519 round-trip (Python signs → Rust verifies) and A2A card
+  parity.
 - **Packaging**: `py.typed` marker, authors/urls/keywords/classifiers, new
   `crypto` and `mcp` extras, GitHub Actions CI (pytest matrix + build +
   twine check).
@@ -45,6 +56,9 @@ and quick wins (see `../FABLE-REVIEW-1.md`).
   signature types are now `QueryGraphEd25519Signature` /
   `QueryGraphUnsignedDigest` (was `QueryGraphDemoSha256Signature`).
 - `langchain-core` dependency bounded `<2`.
+- **OpenLineage run ids are now spec-conformant UUIDs**: deterministic UUIDv5
+  under the QueryGraph namespace (`lineage.run_id_for`), replacing the
+  `querygraph-python-…` prefixed hashes. qg-rust derives identical ids.
 
 ## 0.2.0 "Peregrine" — 2026-06-26
 

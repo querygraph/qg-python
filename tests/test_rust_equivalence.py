@@ -89,6 +89,34 @@ def test_qglake_story_governance_semantics_match_rust():
         assert len(response["envelope"]["payload_sha256"]) == 64
 
 
+def test_both_openlineage_events_conform_to_official_schema():
+    """Interop is proven, not asserted: the events both CLIs emit must
+    validate against the official OpenLineage 2-0-2 JSON Schema, including
+    the UUID run.runId format."""
+    pytest.importorskip("jsonschema")
+    from querygraph.validation import validate_openlineage_schema
+
+    python_event = run_python("qglake-story")["openlineage"]
+    rust_event = run_rust("qglake-story", "--json")["open_lineage"]
+
+    assert validate_openlineage_schema(python_event) == []
+    assert validate_openlineage_schema(rust_event) == []
+
+
+def test_a2a_agent_cards_agree_across_languages():
+    """The Agent Card skill list and security contract are a cross-language
+    contract: both CLIs must publish the same skills, protocol version, and
+    TypeDID security scheme (implementation versions may differ)."""
+    rust = run_rust("agent-card", "--base-url", "http://example.com")
+    python = run_python("agent-card", "--base-url", "http://example.com")
+
+    assert python["protocolVersion"] == rust["protocolVersion"]
+    assert python["url"] == rust["url"]
+    assert python["skills"] == rust["skills"]
+    assert python["securitySchemes"] == rust["securitySchemes"]
+    assert python["capabilities"] == rust["capabilities"]
+
+
 def test_rust_verifies_python_ed25519_envelope():
     """Cross-language crypto parity: an envelope signed by qg-python (real
     Ed25519 under a did:key verification method) must verify in qg-rust."""

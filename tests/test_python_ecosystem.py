@@ -208,6 +208,23 @@ def test_dataverse_native_payload_projects_to_croissant_and_validation():
     assert osi.semantic_model.datasets[0].fields[0].name == "dataset_persistent_id"
 
 
+def test_openlineage_event_conforms_to_official_schema():
+    jsonschema = __import__("pytest").importorskip("jsonschema")  # noqa: F841
+    from querygraph.validation import validate_openlineage_schema
+
+    story = build_python_qglake_story()
+    assert validate_openlineage_schema(story["openlineage"]) == []
+
+    # runId is a spec-required UUID, derived deterministically (UUIDv5).
+    import uuid
+
+    uuid.UUID(story["openlineage"]["run"]["runId"])
+
+    # A broken event is reported, not silently accepted.
+    broken = dict(story["openlineage"], run={"facets": {}})
+    assert validate_openlineage_schema(broken)
+
+
 def test_validators_accept_generated_cdif_and_openlineage():
     output = build_python_qglake_story()
     event_errors = validate_openlineage(output["openlineage"])

@@ -1,6 +1,43 @@
 from __future__ import annotations
 
+import json
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
+
+# The official OpenLineage spec schema, vendored so validation works offline.
+OPENLINEAGE_SCHEMA_PATH = (
+    Path(__file__).parent / "schemas" / "OpenLineage-2-0-2.json"
+)
+
+
+@lru_cache(maxsize=1)
+def _openlineage_validator():
+    try:
+        import jsonschema
+    except ImportError as exc:  # pragma: no cover - depends on optional extra.
+        raise RuntimeError(
+            "Install querygraph[validation] for official-schema validation."
+        ) from exc
+    schema = json.loads(OPENLINEAGE_SCHEMA_PATH.read_text(encoding="utf-8"))
+    # The format checker enforces `format: uuid` on run.runId (and any other
+    # format whose checker is installed); unknown formats are skipped per spec.
+    return jsonschema.Draft202012Validator(
+        schema, format_checker=jsonschema.FormatChecker()
+    )
+
+
+def validate_openlineage_schema(value: dict[str, Any]) -> list[str]:
+    """Validate an event against the official OpenLineage 2-0-2 JSON Schema.
+
+    Returns human-readable error strings; empty means conformant. Unlike the
+    shape checks below, this proves interop with OSS consumers (Marquez,
+    openlineage-python) rather than asserting it.
+    """
+    return [
+        f"{'/'.join(str(part) for part in error.absolute_path) or '<root>'}: {error.message}"
+        for error in _openlineage_validator().iter_errors(value)
+    ]
 
 
 def validate_croissant(value: dict[str, Any]) -> list[str]:

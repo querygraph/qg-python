@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,16 @@ from pydantic import BaseModel, Field
 
 from querygraph import crypto
 from querygraph.typedid import TypeDidEnvelope, sha256_hex
+
+# Deterministic, OpenLineage-conformant run ids: the spec requires
+# `run.runId` to be a UUID, so seeds (envelope signatures, bundle hashes)
+# are mapped through UUIDv5 under a QueryGraph namespace. qg-rust derives
+# the identical namespace and ids.
+QG_RUN_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "https://querygraph.ai/openlineage")
+
+
+def run_id_for(seed: str) -> str:
+    return str(uuid.uuid5(QG_RUN_NAMESPACE, seed))
 
 
 class OpenLineageRunEvent(BaseModel):
@@ -33,7 +44,7 @@ class OpenLineageRunEvent(BaseModel):
     ) -> "OpenLineageRunEvent":
         return cls(
             run={
-                "runId": f"querygraph-python-{request.signature[-12:]}",
+                "runId": run_id_for(request.signature),
                 "facets": {
                     "queryGraph_typeDid": {
                         "_producer": "https://querygraph.ai/qg-python",
