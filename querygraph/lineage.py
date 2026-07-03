@@ -7,6 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from querygraph import crypto
 from querygraph.typedid import TypeDidEnvelope, sha256_hex
 
 
@@ -58,7 +59,7 @@ class LineageAttestation(BaseModel):
     subject: str
     event_hash: str
     merkle_root: str
-    signature_type: str = "QueryGraphDemoSha256Signature"
+    signature_type: str = "QueryGraphUnsignedDigest"
     verification_method: str
     signature: str
     signed_payload_sha256: str
@@ -71,29 +72,73 @@ class LineageAttestation(BaseModel):
         issuer: str,
         subject: str,
         event_hash: str,
+        signer: "crypto.Ed25519Signer | None" = None,
     ) -> "LineageAttestation":
         created_at = datetime.now(UTC)
         merkle_root = sha256_hex(f"querygraph-lineage\n{event_hash}")
-        payload = "\n".join(
-            [
-                "querygraph-lineage-attestation-v1",
-                f"issuer:{issuer}",
-                f"subject:{subject}",
-                f"event_hash:{event_hash}",
-                f"merkle_root:{merkle_root}",
-                f"created_at:{created_at.isoformat()}",
-            ]
+        payload = attestation_payload_v1(
+            issuer=issuer,
+            subject=subject,
+            event_hash=event_hash,
+            merkle_root=merkle_root,
+            created_at=created_at,
         )
+        if signer is not None:
+            signature = signer.sign(payload)
+            signature_type = "QueryGraphEd25519Signature"
+            verification_method = signer.verification_method()
+        else:
+            signature = crypto.unsigned_digest(payload)
+            signature_type = "QueryGraphUnsignedDigest"
+            verification_method = f"{issuer}#unsigned-digest"
         return cls(
             issuer=issuer,
             subject=subject,
             event_hash=event_hash,
             merkle_root=merkle_root,
-            verification_method=f"{issuer}#querygraph-demo-key",
-            signature=f"sha256:{sha256_hex(payload)}",
+            signature_type=signature_type,
+            verification_method=verification_method,
+            signature=signature,
             signed_payload_sha256=sha256_hex(payload),
             created_at=created_at,
         )
+
+    def signing_payload(self) -> str:
+        return attestation_payload_v1(
+            issuer=self.issuer,
+            subject=self.subject,
+            event_hash=self.event_hash,
+            merkle_root=self.merkle_root,
+            created_at=self.created_at,
+        )
+
+    def verify(self, public_key: bytes | str | None = None) -> bool:
+        """Verify an Ed25519-signed attestation; unsigned digests never verify."""
+        if not self.signature.startswith(crypto.SIGNATURE_PREFIX):
+            return False
+        key = public_key or self.verification_method
+        return crypto.verify(key, self.signing_payload(), self.signature)
+
+
+def attestation_payload_v1(
+    *,
+    issuer: str,
+    subject: str,
+    event_hash: str,
+    merkle_root: str,
+    created_at: datetime,
+) -> str:
+    """Canonical byte string that lineage attestation signatures cover."""
+    return "\n".join(
+        [
+            "querygraph-lineage-attestation-v1",
+            f"issuer:{issuer}",
+            f"subject:{subject}",
+            f"event_hash:{event_hash}",
+            f"merkle_root:{merkle_root}",
+            f"created_at:{created_at.isoformat()}",
+        ]
+    )
 
 
 def append_jsonl(path: str | Path, value: BaseModel | dict[str, Any]) -> Path:

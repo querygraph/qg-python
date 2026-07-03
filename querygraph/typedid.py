@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from functools import lru_cache
 from hashlib import sha256
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from querygraph import crypto
 from querygraph.did import DidDocument
 from querygraph.odrl import Action, Policy
 
@@ -13,6 +15,11 @@ from querygraph.odrl import Action, Policy
 def sha256_hex(value: bytes | str) -> str:
     data = value.encode() if isinstance(value, str) else value
     return sha256(data).hexdigest()
+
+
+@lru_cache(maxsize=256)
+def _signer_from_seed(seed: str) -> "crypto.Ed25519Signer":
+    return crypto.Ed25519Signer.from_seed(seed)
 
 
 class AccessReceipt(BaseModel):
@@ -47,6 +54,9 @@ class TypeDidEnvelope(BaseModel):
     payload: dict[str, Any]
     payload_sha256: str
     signature: str
+    # did:key verification method for `ed25519:` signatures; None when the
+    # envelope carries only an `unsigned:sha256:` digest (crypto extra absent).
+    verification_method: str | None = None
     envelope_digest: str = ""
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
@@ -63,23 +73,25 @@ class TypeDidEnvelope(BaseModel):
         content_type: str = "application/json",
         privacy: str = "secret",
         profile: str = TYPEDID_PROFILE,
+        signer: "crypto.Ed25519Signer | None" = None,
     ) -> "TypeDidEnvelope":
         sender_id = sender.id if isinstance(sender, DidDocument) else sender
         recipient_id = recipient.id if isinstance(recipient, DidDocument) else recipient
         payload_hash = sha256_hex(_canonical(payload))
         conversation = conversation_id or f"qg:{payload_hash[:16]}"
-        signature = sha256_hex(
-            "\n".join(
-                [
-                    "querygraph-typedid-demo-signature-v1",
-                    sender_id,
-                    recipient_id,
-                    action,
-                    resource,
-                    payload_hash,
-                ]
-            )
+        signing_payload = signing_payload_v1(
+            sender=sender_id,
+            recipient=recipient_id,
+            action=action,
+            resource=resource,
+            payload_sha256=payload_hash,
         )
+        verification_method: str | None = None
+        if signer is not None:
+            signature = signer.sign(signing_payload)
+            verification_method = signer.verification_method()
+        else:
+            signature = crypto.unsigned_digest(signing_payload)
         envelope_digest = sha256_hex(
             "\n".join(
                 [
@@ -102,12 +114,62 @@ class TypeDidEnvelope(BaseModel):
             content_type=content_type,
             payload=payload,
             payload_sha256=payload_hash,
-            signature=f"sha256:{signature}",
+            signature=signature,
+            verification_method=verification_method,
             envelope_digest=f"sha256:{envelope_digest}",
+        )
+
+    def signing_payload(self) -> str:
+        return signing_payload_v1(
+            sender=self.sender,
+            recipient=self.recipient,
+            action=self.action,
+            resource=self.resource,
+            payload_sha256=self.payload_sha256,
         )
 
     def verify_payload(self) -> bool:
         return self.payload_sha256 == sha256_hex(_canonical(self.payload))
+
+    def verify_signature(self, public_key: bytes | str | None = None) -> bool:
+        """Verify the envelope signature.
+
+        `ed25519:` signatures verify against `public_key` (raw bytes, multibase,
+        or did:key) or, when omitted, the envelope's own `verification_method`.
+        `unsigned:` digests are re-derivable but are never valid signatures.
+        """
+        if not self.verify_payload():
+            return False
+        if self.signature.startswith(crypto.SIGNATURE_PREFIX):
+            key = public_key or self.verification_method
+            if key is None:
+                return False
+            return crypto.verify(key, self.signing_payload(), self.signature)
+        return False
+
+    def is_signed(self) -> bool:
+        return self.signature.startswith(crypto.SIGNATURE_PREFIX)
+
+
+def signing_payload_v1(
+    *,
+    sender: str,
+    recipient: str,
+    action: str,
+    resource: str,
+    payload_sha256: str,
+) -> str:
+    """Canonical byte string that TypeDID envelope signatures cover."""
+    return "\n".join(
+        [
+            "querygraph-typedid-signing-v1",
+            sender,
+            recipient,
+            action,
+            resource,
+            payload_sha256,
+        ]
+    )
 
 
 class GovernedPrompt(BaseModel):
@@ -131,11 +193,32 @@ class TypeDidAgent(BaseModel):
     name: str
     did: DidDocument
     capabilities: list[str] = Field(default_factory=list)
+    # Deterministic key seed, mirroring Rust TypeSec `Ed25519DidKey::from_seed`.
+    # Excluded from serialization: the seed is the private key material.
+    seed: str | None = Field(default=None, exclude=True, repr=False)
 
     @classmethod
     def new(cls, name: str, *, seed: str | None = None) -> "TypeDidAgent":
-        did = DidDocument.new_oyd(seed or f"querygraph-agent:{name}", name)
-        return cls(name=name, did=did, capabilities=[])
+        agent_seed = seed or f"querygraph-agent:{name}"
+        did = DidDocument.new_oyd(agent_seed, name)
+        return cls(name=name, did=did, capabilities=[], seed=agent_seed)
+
+    @property
+    def signer(self) -> "crypto.Ed25519Signer | None":
+        """Real Ed25519 signer when the crypto extra is installed and a seed is known."""
+        if self.seed is None or not crypto.CRYPTO_AVAILABLE:
+            return None
+        return _signer_from_seed(self.seed)
+
+    def did_key(self) -> str | None:
+        signer = self.signer
+        return signer.did_key() if signer is not None else None
+
+    def to_tool_schema(self, *, flavor: str = "openai") -> dict[str, Any]:
+        """Standard JSON-Schema tool definition (OpenAI or Anthropic flavor)."""
+        from querygraph.agents import to_tool_schema
+
+        return to_tool_schema(self, flavor=flavor)
 
     def request(
         self,
@@ -151,6 +234,7 @@ class TypeDidAgent(BaseModel):
             action=action,
             resource=resource,
             payload=payload,
+            signer=self.signer,
         )
 
     def answer(
@@ -176,6 +260,7 @@ class TypeDidAgent(BaseModel):
             resource=request.resource,
             payload=payload,
             conversation_id=request.conversation_id,
+            signer=self.signer,
         )
         return AgentResponse(
             agent=self.name,

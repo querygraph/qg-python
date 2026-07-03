@@ -88,6 +88,7 @@ def build_python_qglake_story() -> dict[str, Any]:
         issuer=supervisor.did.id,
         subject="querygraph:resilience-briefing",
         event_hash=event.event_hash(),
+        signer=supervisor.signer,
     )
     return {
         "prompt": prompt.model_dump(mode="json"),

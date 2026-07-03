@@ -98,7 +98,8 @@ def test_lineage_event_and_attestation_from_typedid_request():
 
     assert event.run["facets"]["queryGraph_typeDid"]["payloadSha256"]
     assert attestation.event_hash == event.event_hash()
-    assert attestation.signature.startswith("sha256:")
+    # Signed when the crypto extra is present; clearly marked unsigned otherwise.
+    assert attestation.signature.startswith(("ed25519:", "unsigned:sha256:"))
 
 
 def test_lakehouse_manifest_specs_find_parquet_locations(tmp_path: Path):
