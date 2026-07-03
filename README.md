@@ -8,10 +8,17 @@ It mirrors and extends the Rust implementation in `../qg-rust`:
 - CDIF discovery/access/profile projection
 - deterministic `did:oyd` identity documents
 - ODRL permissions and prohibitions
-- OSI semantic models over Croissant fields and Sail columns
-- TypeDID agents modeled with Pydantic
-- optional LangChain adapters for governed agent tools
-- OpenLineage events and DID-style attestations
+- OSI semantic models over Croissant fields and Sail columns, with structured
+  `ai_context` (instructions/synonyms/examples), relationships, and
+  dialect-fallback metric resolution
+- TypeDID agents modeled with Pydantic, signed with real Ed25519 keys
+  (`crypto` extra) under `did:key` verification methods
+- an MCP server exposing the governed layer to any agent framework
+  (`mcp` extra, `querygraph mcp-serve`)
+- vendor-neutral tool-schema export (`TypeDidAgent.to_tool_schema()`) for
+  OpenAI/Anthropic-style function calling
+- optional LangChain adapters (sync + async) for governed agent tools
+- OpenLineage events and Ed25519-signed lineage attestations
 - PySpark helpers for querying a local Sail warehouse
 - a CLI compatible with the Rust semantic bundle commands
 
@@ -50,6 +57,18 @@ Optional LangChain tool adapters:
 
 ```bash
 uv sync --extra agents
+```
+
+Real Ed25519 signing for envelopes and attestations:
+
+```bash
+uv sync --extra crypto
+```
+
+The MCP server:
+
+```bash
+uv sync --extra mcp
 ```
 
 Everything:
@@ -131,7 +150,56 @@ uv run python examples/typedid_langchain_agents.py
 
 The agents are Pydantic models first. When LangChain is installed, a
 `TypeDidLangChainToolAdapter` exposes the same governed agent as a LangChain
-`StructuredTool`.
+`StructuredTool` — `as_tool()` for sync runtimes, `as_async_tool()` for async
+ones. For every other framework, `TypeDidAgent.to_tool_schema()` emits a
+standard JSON-Schema tool definition:
+
+```python
+from querygraph import TypeDidAgent
+
+finance = TypeDidAgent.new("FinanceAgent")
+finance.to_tool_schema()                     # OpenAI function-calling shape
+finance.to_tool_schema(flavor="anthropic")   # Anthropic tool-use shape
+```
+
+## Signed Envelopes (Ed25519)
+
+With the `crypto` extra installed, agent envelopes and lineage attestations
+are signed with real Ed25519 keys derived deterministically from agent seeds
+(the same `from_seed` pattern as Rust TypeSec), and carry `did:key`
+verification methods:
+
+```python
+from querygraph import TypeDidAgent
+
+supervisor = TypeDidAgent.new("SupervisorAgent")
+finance = TypeDidAgent.new("FinanceAgent")
+request = supervisor.request(
+    finance, action="summarize", resource="compartment:finance",
+    payload={"question": "Where is fiscal stress highest?"},
+)
+assert request.verify_signature()      # verifies against verification_method
+```
+
+Without the extra, digests are prefixed `unsigned:sha256:` so they can never
+be mistaken for signatures.
+
+## MCP Server
+
+Expose the whole governed layer to any MCP client — Claude Code/Desktop,
+OpenAI Agents SDK, LangChain (`langchain-mcp-adapters`), PydanticAI,
+LlamaIndex, CrewAI — with one command:
+
+```bash
+uv sync --extra mcp
+uv run querygraph mcp-serve --osi path/to/semantic-model.yaml
+```
+
+Tools: `search_semantic_model`, `resolve_metric` (dialect fallback),
+`check_access` (RBAC+ODRL dual gate — denials are receipts, not errors),
+`build_navigator_bundle`, `run_qglake_story`, and `verify_envelope`. Pass
+`--rights governance.json` to supply your own RBAC+ODRL policy and
+`--transport streamable-http` for a network transport.
 
 ## Test
 
