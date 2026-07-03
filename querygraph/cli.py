@@ -65,6 +65,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     pyspark_examples.add_argument("--scope", default="global_temp")
 
+    agent_card = subparsers.add_parser(
+        "agent-card",
+        help="Print the A2A Agent Card for a QueryGraph deployment.",
+    )
+    agent_card.add_argument("--base-url", default="http://localhost:8080")
+
     mcp_serve = subparsers.add_parser(
         "mcp-serve",
         help="Serve the governed semantic layer over the Model Context Protocol.",
@@ -122,6 +128,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "pyspark-examples":
         print("\n".join(example_queries(args.scope)))
+        return 0
+
+    if args.command == "agent-card":
+        from querygraph.a2a import build_agent_card
+
+        print(json.dumps(build_agent_card(args.base_url), indent=2))
         return 0
 
     if args.command == "mcp-serve":
