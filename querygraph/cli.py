@@ -65,6 +65,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     pyspark_examples.add_argument("--scope", default="global_temp")
 
+    answer = subparsers.add_parser(
+        "answer",
+        help="Run the governed navigator loop: search, policy gate, plan, synthesize.",
+    )
+    answer.add_argument("--question", required=True)
+    answer.add_argument("--osi", default=None, help="OSI model YAML/JSON (demo model if omitted).")
+    answer.add_argument("--rights", default=None, help="RBAC+ODRL governance JSON.")
+    answer.add_argument("--principal", default=None)
+    answer.add_argument("--llm-base-url", default=None, help="OpenAI-compatible endpoint.")
+    answer.add_argument("--llm-model", default=None)
+    answer.add_argument("--llm-api-key", default=None)
+
     agent_card = subparsers.add_parser(
         "agent-card",
         help="Print the A2A Agent Card for a QueryGraph deployment.",
@@ -128,6 +140,35 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "pyspark-examples":
         print("\n".join(example_queries(args.scope)))
+        return 0
+
+    if args.command == "answer":
+        from querygraph.navigator_loop import (
+            GovernedNavigatorLoop,
+            openai_compatible_llm,
+        )
+
+        llm = None
+        llm_name = "deterministic"
+        if args.llm_base_url and args.llm_model:
+            llm = openai_compatible_llm(
+                args.llm_base_url, args.llm_model, api_key=args.llm_api_key
+            )
+            llm_name = f"openai-compatible:{args.llm_model}"
+        if args.osi:
+            from querygraph.mcp_server import demo_rights_layer, load_rights_layer
+            from querygraph.osi import OsiDocument
+
+            loop = GovernedNavigatorLoop(
+                OsiDocument.from_yaml_file(args.osi),
+                load_rights_layer(args.rights) if args.rights else demo_rights_layer(),
+                llm=llm,
+                llm_name=llm_name,
+                principal=args.principal,
+            )
+        else:
+            loop = GovernedNavigatorLoop.demo(llm=llm, llm_name=llm_name)
+        print(json.dumps(loop.answer(args.question).model_dump(mode="json"), indent=2))
         return 0
 
     if args.command == "agent-card":

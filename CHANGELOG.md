@@ -4,6 +4,19 @@ All notable changes to the QueryGraph Python port are recorded here. The
 codename pool and the shared version line live in [`RELEASES.md`](RELEASES.md);
 the canonical scheme is in `../qg-rust/RELEASES.md`.
 
+## 0.4.0-dev — unreleased
+
+### Added
+- **The governed navigator loop** (`querygraph.navigator_loop`, CLI:
+  `querygraph answer`, MCP tool: `answer_question`) — FABLE-REVIEW-1 P1-8.
+  question → semantic-model search (synonyms + bigrams + containment) →
+  RBAC+ODRL gate with receipts (denials are first-class and named in the
+  prompt as off-limits) → SQL plans over allowed Sail sources → synthesis via
+  any `Callable[[str], str]` (`openai_compatible_llm` binds Ollama, vLLM,
+  llama.cpp, LM Studio, OpenRouter; `llm=None` is the deterministic golden
+  baseline) → answer in a signed TypeDID envelope with the OpenLineage event
+  (schema-validated) and Ed25519 attestation.
+
 ## 0.3.0 "Goshawk" — 2026-07-03
 
 The interoperability release, implementing the FABLE-REVIEW-1 P0 items and

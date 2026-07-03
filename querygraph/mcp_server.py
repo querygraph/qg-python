@@ -155,6 +155,19 @@ def create_server(
         return build_python_qglake_story()
 
     @server.tool()
+    def answer_question(question: str) -> dict[str, Any]:
+        """Run the governed navigator loop: semantic search, RBAC+ODRL gate
+        with receipts, SQL plans over allowed sources, synthesized answer in
+        a signed envelope with the OpenLineage evidence chain."""
+        from querygraph.navigator_loop import GovernedNavigatorLoop
+
+        if osi_document is not None:
+            loop = GovernedNavigatorLoop(osi_document, rights)
+        else:
+            loop = GovernedNavigatorLoop.demo()
+        return loop.answer(question).model_dump(mode="json")
+
+    @server.tool()
     def verify_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
         """Verify a TypeDID envelope's payload hash and Ed25519 signature."""
         parsed = TypeDidEnvelope.model_validate(envelope)
