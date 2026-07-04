@@ -4,7 +4,12 @@ All notable changes to the QueryGraph Python port are recorded here. The
 codename pool and the shared version line live in [`RELEASES.md`](RELEASES.md);
 the canonical scheme is in `../qg-rust/RELEASES.md`.
 
-## 0.4.0-dev — unreleased
+## 0.4.0 "Sentinel" — 2026-07-04
+
+The governed-answer release, alongside qg-rust 0.4.0 "Sentinel": the
+navigator loop answers under receipts, and `api_auth` mints the envelope
+headers that qg-rust's guarded `/v1` demands. The stack beneath moved to the
+0.12 substrate wave (Grust "Lobster", TypeSec "Torcello", LakeCat "Ocelot").
 
 ### Added
 - **Envelope auth client** (`querygraph.api_auth`): `mint_envelope_header`
