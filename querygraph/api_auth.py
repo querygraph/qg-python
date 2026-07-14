@@ -5,6 +5,9 @@ The server's governed routes (`serve --require-auth`) demand an
 `resource` bound to the request path, and `payload.bodySha256` bound to the
 request body — so an envelope can be neither replayed against another
 endpoint nor attached to a different body. Requires the `crypto` extra.
+For HTTP authorization, `sender` is the credential's public `did:key`;
+qg-rust requires it to match `verification_method` and requires recipient
+`did:web:qg-server` before using the sender as the TypeSec policy subject.
 """
 
 from __future__ import annotations
@@ -25,8 +28,15 @@ def mint_envelope_header(
     recipient: str = "did:web:qg-server",
 ) -> str:
     """The `x-qg-envelope` header value authorizing one request."""
+    signing_did = agent.did_key()
+    if signing_did is None:
+        raise RuntimeError(
+            "governed HTTP requests require the querygraph[crypto] extra and a signing seed"
+        )
     envelope = TypeDidEnvelope.create(
-        sender=agent.did,
+        # HTTP authorization uses the signing DID itself as the principal.
+        # The server rejects a sender that differs from verification_method.
+        sender=signing_did,
         recipient=recipient,
         action="invoke",
         resource=path,

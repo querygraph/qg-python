@@ -4,6 +4,26 @@ All notable changes to the QueryGraph Python port are recorded here. The
 codename pool and the shared version line live in [`RELEASES.md`](RELEASES.md);
 the canonical scheme is in `../qg-rust/RELEASES.md`.
 
+## 0.5.0-dev — unreleased
+
+### Added
+- **Pydantic AI v2 credential-and-memory capabilities**:
+  `querygraph.pydantic_ai_capabilities` composes two native `Capability`
+  objects on every agent. One keeps the TypeDID signing credential in typed
+  runtime dependencies and performs authenticated QueryGraph access; the
+  other remembers, recalls, and forgets through qg-rust's TypeSec/Grust/Turso
+  Marciana service. The provider-free `TestModel` demo starts qg-rust,
+  generates exact-DID policy, stores a governed specialist finding, restarts
+  the server, lets a supervisor recover it, and proves both unsigned access
+  and an unassigned signed identity are denied.
+
+### Security
+- Governed HTTP envelopes now use the credential's signing `did:key` as
+  `sender`, and fail early without the crypto extra. qg-rust requires that
+  sender to match the envelope verification method before using it as the
+  TypeSec policy subject, closing sender-impersonation ambiguity between a
+  display DID and the actual signing credential.
+
 ## 0.4.0 "Sentinel" — 2026-07-04
 
 The governed-answer release, alongside qg-rust 0.4.0 "Sentinel": the

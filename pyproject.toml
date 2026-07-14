@@ -50,6 +50,9 @@ Changelog = "https://github.com/querygraph/qg-python/blob/main/CHANGELOG.md"
 agents = [
   "langchain-core>=0.3,<2",
 ]
+pydantic-ai = [
+  "pydantic-ai-slim>=2,<3",
+]
 crypto = [
   "cryptography>=42",
 ]
@@ -78,6 +81,7 @@ all = [
   "grpcio-status>=1.81.0",
   "langchain-core>=0.3,<2",
   "mcp>=1.2",
+  "pydantic-ai-slim>=2,<3",
   "pandas>=3.0.0",
   "pyarrow>=24.0.0",
   "pyspark>=4.1.2",

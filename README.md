@@ -18,6 +18,8 @@ It mirrors and extends the Rust implementation in `../qg-rust`:
 - vendor-neutral tool-schema export (`TypeDidAgent.to_tool_schema()`) for
   OpenAI/Anthropic-style function calling
 - optional LangChain adapters (sync + async) for governed agent tools
+- native Pydantic AI v2 capabilities for TypeDID credentials and persistent
+  TypeSec/Grust memory
 - OpenLineage events and Ed25519-signed lineage attestations
 - PySpark helpers for querying a local Sail warehouse
 - a CLI compatible with the Rust semantic bundle commands
@@ -62,6 +64,12 @@ Optional LangChain tool adapters:
 
 ```bash
 uv sync --extra agents
+```
+
+Pydantic AI v2 capabilities (provider-free slim runtime):
+
+```bash
+uv sync --extra pydantic-ai --extra crypto
 ```
 
 Real Ed25519 signing for envelopes and attestations:
@@ -166,6 +174,30 @@ finance = TypeDidAgent.new("FinanceAgent")
 finance.to_tool_schema()                     # OpenAI function-calling shape
 finance.to_tool_schema(flavor="anthropic")   # Anthropic tool-use shape
 ```
+
+## Pydantic AI v2: Credentials That Remember
+
+The end-to-end demo gives every agent two native Pydantic AI v2
+`Capability` objects:
+
+- `querygraph.typedid-credential` keeps the private signing seed in typed
+  runtime dependencies and exposes only signed access plus the public DID;
+- `querygraph.marciana-memory` calls qg-rust's capability-gated, Turso-backed
+  remember/recall/forget API.
+
+It uses `TestModel`, so no OpenAI, Anthropic, or Google key is required. The
+script builds and starts qg-rust, creates policy for a specialist and
+supervisor, stores a governed answer, restarts the Rust service, recalls the
+answer under the supervisor's distinct credential, and shows an outsider's
+validly signed request being denied.
+
+```bash
+uv sync --extra test --extra crypto --extra pydantic-ai
+uv run python examples/pydantic_ai_v2_memory_agents.py
+```
+
+The policy contains only public `did:key` values. Seeds never enter prompts,
+tool arguments, policy files, or serialized agent models.
 
 ## Signed Envelopes (Ed25519)
 

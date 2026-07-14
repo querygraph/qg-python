@@ -49,3 +49,15 @@ For the LangChain adapter path:
 uv sync --extra agents
 python examples/typedid_langchain_agents.py
 ```
+
+## Pydantic AI v2 Credentials + Persistent Memory
+
+```bash
+uv sync --extra crypto --extra pydantic-ai
+uv run python examples/pydantic_ai_v2_memory_agents.py
+```
+
+This provider-free multi-agent demo composes a TypeDID credential capability
+with a Marciana memory capability. It boots qg-rust with generated exact-DID
+RBAC policy and Turso storage, restarts it between specialist write and
+supervisor recall, and records the outsider denial receipt.

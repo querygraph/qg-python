@@ -19,8 +19,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Sync environment (core + crypto + agents + mcp + test extras)
-        run: uv sync --extra test --extra crypto --extra agents --extra mcp
+      - name: Sync environment (core + crypto + agents + Pydantic AI + mcp + test extras)
+        run: uv sync --extra test --extra crypto --extra agents --extra pydantic-ai --extra mcp
 
       # The Rust equivalence suite needs the qg-rust sibling checkout plus the
       # grust/lakecat path dependencies; it runs in the qg-rust stack CI, not here.
